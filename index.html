@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wembley Park</title>
+</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.1.1/d3.min.js"></script> -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v1.9.1/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v1.9.1/mapbox-gl.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
+<style>
+     body {
+        margin:0;
+        padding: 0;
+        /* font-family:'Open Sans', 'Helvetica Neue', sans-serif; */
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .map {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100vh;
+        width:100vw;
+        z-index: 0;
+    }
+
+    .custom-marker.active-marker {
+        z-index: 1;
+        /* box-shadow: inset 2px 2px 0.4em #fff, 2px 2px 0.3em #7c7c7c; */
+        border: 2px solid #3c4fb9;
+        border-radius: 50%;
+    }
+
+    .custom-marker {
+        padding:0.28em;
+    }
+
+    .custom-marker > div {
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        box-shadow: 2px 2px 0.3em #7c7c7c;
+        background-color: #Fc4c02;
+        cursor: pointer;
+    }
+
+    .mapboxgl-popup-content  {
+        width: 240px;
+        border-radius: 1rem;
+        padding: 0;
+        overflow: hidden;
+        background-color: transparent;
+        margin: 0px 0px -22px -22px;
+        z-index: 0;
+        box-shadow: 2px 2px 0.2rem #858585;
+    }
+
+    .mapboxgl-popup-close-button {
+        position: absolute;
+        right: 2%;
+        top: 0;
+        border: 0;
+        font-size: 1.5rem;
+        border-radius: 0 3px 0 0;
+        cursor: pointer;
+        background-color: transparent;
+        color: white;
+    }
+
+    .mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip {
+        display: none;
+    }
+
+    .popup-content {
+       width: 100%;
+       overflow: hidden;
+       height: 200px;
+       border-radius: 1rem;
+    }
+
+    .popup-content .popup-title {
+        position: absolute;
+        top: 4%;
+        color: #fff;
+        left: 20%;
+        mix-blend-mode: soft-light;
+
+    }
+
+    .popup-content .img {
+        width: 240px;
+        height: 200px;
+    }
+
+    .popup-content .more-info {
+        position: absolute;
+        bottom: 0%;
+        margin: 0 4px 10px;
+        right: 30%;
+        font-size: 1.4em;
+        color: rgb(255, 255, 255);
+        font-weight: 700;
+        text-shadow: 1px 1px 0.3em #343434;
+    }
+
+    .popup-title {
+        font-size: 1.2em;
+        margin:0em;
+    }
+
+    .description {
+        position: absolute;
+        z-index: 1;
+        background-color: #fff;
+        top:70%;
+        left:2%;
+        height: auto;
+        width:94vw;
+        border-radius: 1rem;
+        box-shadow: 2px 2px 0.3em #797979;
+    }
+
+    .close-btn {
+        color: #c94a15;
+        border: 1px solid #df5216;
+        /* padding: 0em 0.9em; */
+        position: absolute;
+        top: 2%;
+        background-color: transparent;
+        right: 2%;
+        border-radius: 2rem;
+        font-size: 1.3rem;
+        line-height: 1;
+    }
+
+    .close-btn:focus, .close-btn:hover {
+        outline: none;
+        background-color:#df5216;
+        color: #fff;
+    }
+
+    .popup-description {
+        padding:0.5em 0.3em;
+    }
+
+    .popup-description .popup-title {
+        text-align: center;
+        width: 80%;
+    }
+
+    .popup-description p {
+        margin: 0.8em;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    p >  b {
+        margin-right: 1rem;
+    }
+
+    /* carouel section */
+    .media {
+        position: relative;
+        height: 262px;
+        overflow: hidden;
+    }
+    .media img {
+        width: 100%;
+    }
+
+    .media .btn {
+        text-align: center;
+        background-color: #fff;
+        position: absolute;
+        border: 2px solid #Fc4c02;
+        border-radius: 50%;
+        padding: 0em 0.3em;
+        color: #Fc4c02;
+        font-size: 1.4rem;
+    }
+
+    .media .forward-btn {
+        top:50%;
+        right:3%;
+    }
+
+    .media .back-btn {
+        top:50%;
+        left:3%;
+    }
+
+    .media .img-carousel {
+        opacity: 0;
+        display: none;
+        transition:all 0.5s ease-in-out;
+    }
+
+    .img-carousel.img-active {
+        opacity: 1;
+        display: block;
+    }
+
+    /*  */
+
+    .bold {
+        font-weight: 600;
+    }
+
+    .d-none {
+        display: none !important;
+    }
+
+    
+    @media(min-width: 50em) {
+        .description {
+            width:400px;
+            top:5%;
+        }
+    }
+</style>
+<body>
+    <main class="main-container">
+        <div id="map" class="map"></div>
+        <div class="description d-none">
+            <button class="close-btn">&times;</button>
+            <div class="description-content" id="description">
+                <!-- title -->
+                <!--  -->
+            </div>
+        </div>
+    </main>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiYXBlcnJvdHR3cCIsImEiOiJja2VtbnVxemYzYjY3MnltaWY5MDFhaXhmIn0.IZmU5zQb9Iy6-ipFrfO_mQ'; //Mapbox token 
+        var map = new mapboxgl.Map({
+            container: 'map', 
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: {lng: -0.2811298984814812, lat: 51.55842596243019}, // starting position
+            zoom: 15.17,// starting zoom
+        });
+
+        // let dataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpCda-QzjlEz8wJWRAfiKFoRxwMrvUC5s28JaVCmXZWohU3nXEfN0Jgq1WUVqKf25ZENhyErK4Gw0z/pub?gid=0&single=true&output=csv";
+        let dataUrl = "https://docs.google.com/spreadsheets/d/1QPi6wfTYvbMbwsktwVcp_YwhUg5dJr9EQIMZLcPG2ds/edit?usp=sharing";
+        
+        // url
+        let url = "https://spreadsheets.google.com/feeds/cells/1QPi6wfTYvbMbwsktwVcp_YwhUg5dJr9EQIMZLcPG2ds/1/public/values";
+
+        var descriptionTab = $(".description");
+        var descriptionSection = $("#description");
+        var toggleDescriptionButton = $(".close-btn");
+
+        var currentArtWork = {};
+        var previousPopup;
+        var previousElement;
+
+         // toggle descriptionTab
+         toggleDescriptionButton.on("click", function(e){
+            descriptionTab.toggleClass("d-none");
+            currentArtWork = {};
+        });
+
+        map.on("load", function(e) {
+            // 
+            $.ajax({
+                url:url+'?alt=json-in-script&callback=doData',
+                type:'GET',
+                dataType:'jsonp',
+                jsonp:'doData'
+            });
+
+            
+        });
+
+        function doData(result) {
+            console.log(result);
+
+            var data = [];
+            for (i = 9; i < result.feed.entry.length; i += 9) {
+                data.push({
+                    "Name": result.feed.entry[i].content.$t,
+                    "Artist": result.feed.entry[i+1].content.$t,
+                    "Year Commissioned":result.feed.entry[i+2].content.$t,
+                    "Medium":result.feed.entry[i+3].content.$t,
+                    "Location":result.feed.entry[i+4].content.$t,
+                    "Description":result.feed.entry[i+5].content.$t,
+                    "Photo":result.feed.entry[i+6].content.$t,
+                    "lng":result.feed.entry[i+7].content.$t,
+                    "lat":result.feed.entry[i+8].content.$t,
+                });
+            }
+
+            // create markers
+            console.log(data);
+            createMarkers(data);
+        }
+
+        function createMarkers(arts) {
+            arts.forEach(art => {
+                createMarker(art);
+            });
+        }
+
+        function createMarker(art, className="") {
+            // popup content
+            let image = art.Photo.split(',')[0];
+
+            console.log(image);
+            let popupContent = "<div class='popup-content'>"+
+            "<h5 class='popup-title'>"+ art.Name +"</h5>"+
+            "<img class='img' src='images/"+ art.Name.replace("'","") + "/" + image +".png'>"+
+            "<p class='more-info'>&larr; <small>Click for more<small></p>"
+            "</div>";
+
+            var popup = new mapboxgl.Popup({
+                anchor:"bottom-left"
+            });
+            popup.setHTML(popupContent);
+
+            // marker
+            var element = document.createElement("div");
+            element.classList.add('custom-marker');
+            element.innerHTML = "<div></div>"
+
+            let coords = [art.lng ,art.lat];
+            var marker = new mapboxgl.Marker({
+                element:element
+            })
+            .setLngLat(coords)
+            .setPopup(popup)
+            .addTo(map);
+
+            // add eventListener
+            $(element).on("mouseover", function(e) {
+                console.log(popup.isOpen());
+                if(previousPopup && previousPopup.isOpen()) {
+                    previousPopup.remove();
+                }
+
+                if(!popup.isOpen()) {
+                    marker.togglePopup();
+                }
+
+                element.style.zIndex = 1;
+
+                $('.popup-content').on("mouseout",function(e){
+                    element.style.zIndex = 0;
+
+                    if(popup.isOpen()) {
+                        marker.togglePopup();
+                    }
+                });
+            });
+
+            $(element).on("mouseout", function(e) {
+            });
+
+            $(element).on("click", function(e) {
+                // update current art
+                currentArtWork = art;
+
+                console.log(popup.isOpen());
+                if(previousPopup && previousPopup.isOpen()) {
+                    previousPopup.remove();
+                }
+                marker.togglePopup();
+
+                // add marker active marker
+                if(previousElement) {
+                    previousElement.classList.remove("active-marker");
+                    previousElement.style.zIndex = 0;
+                }
+
+                element.classList.add("active-marker");
+
+                // display the description tab;
+                descriptionTab.removeClass("d-none");
+
+                // update the description tab content
+                updateDescriptionTab(art);
+
+                previousElement = element;
+                previousPopup = popup;
+            });
+
+        }
+
+        // update
+        function updateDescriptionTab(art) {
+            let images = art.Photo;
+            console.log(images);
+
+            images = images.split(',');
+            console.log(images);
+
+            // create an array of images
+            let imagesUrl = images.map((image, i) => {
+                if(i == 0) {
+                    return "<img src='images/" + art.Name.replace("'","") + "/" + image.trim() +".png' class='img-carousel img-active'>";
+                }
+                return "<img src='images/" + art.Name.replace("'","") + "/" + image.trim() +".png' class='img-carousel'>";
+            });
+
+            console.log(imagesUrl);
+
+            let content =  "<div class='popup-description'>"+
+            "<h5 class='popup-title'>"+ art.Name +"</h5>"+
+            "<p class='bold'>"+ art.Artist +", "+ art['Year Commissioned']+"</p>"+
+            "<p class=''><b>Art Medium      </b>"+ art.Medium +"</p>"+
+            "<p class=''><b>Location     </b>"+ art.Location +"</p>"+
+            "<p class=''>"+ art.Description +"</p>"+
+            "<div class='media'>"+
+            "<button class='btn forward-btn'>&raquo;</button>"+
+            "<button class='btn back-btn'>&laquo;</button>"+
+            imagesUrl.join("") +
+            "</div>"+
+            "</div>";
+
+            descriptionSection.empty();
+
+            descriptionSection.html(content);
+            eventListener();
+        }
+
+        // carousel
+        var currentImage = 0;
+        var imagesSlider;
+        function eventListener() {
+            imagesSlider = document.querySelectorAll(".img-carousel");
+
+            $('.forward-btn').on("click", moveNext);
+            $('.back-btn').on("click", movePrev);
+        }
+
+        function moveNext() {
+            currentImage++;
+            if(currentImage == imagesSlider.length) {
+                currentImage = 0;
+            }
+
+            console.log(currentImage);
+            toggleActiveClassess();
+            imagesSlider[currentImage].classList.add("img-active");
+        }
+
+        function movePrev() {
+            currentImage--;
+
+            if(currentImage < 0) {
+                currentImage = imagesSlider.length - 1;
+            }
+
+            console.log(currentImage);
+
+            toggleActiveClassess();
+            imagesSlider[currentImage].classList.add("img-active");
+
+        }
+
+        function toggleActiveClassess() {
+            imagesSlider.forEach(img => {
+                img.classList.remove("img-active");
+            });
+        }
+    </script>
+</body>
+</html>
